@@ -11,6 +11,8 @@ import plotly.express as px
 # import plotly.graph_objects as go
 import seaborn as sns
 
+st.set_page_config(page_title=Definitions.PAGE_TITLE, page_icon="🌡️")
+
 df = pd.DataFrame(
     np.random.randn(1000, 2) / [50, 50] + [37.76, -122.4],
     columns=['lat', 'lon'])

@@ -142,7 +142,7 @@ with st.form(key='FilterForm'):
                         pred_fig.add_trace(go.Scatter(x=model_dates, y=X_Real_val, mode='lines+markers', name='Real'))
                         pred_fig.add_trace(go.Scatter(x=model_dates, y=trainPredictPlot, mode='lines+markers', name='Estimado'))
                         pred_fig.add_trace(go.Scatter(x=model_dates, y=testPredictPlot, mode='lines+markers', name='Predecido'))
-                        pred_fig.update_layout(title=title, xaxis_title='Dia', yaxis_title='Cantidad')
+                        pred_fig.update_layout(title=title, xaxis_title='Dia', yaxis_title='Temperatura')
 
                         st.plotly_chart(pred_fig)
                     except:

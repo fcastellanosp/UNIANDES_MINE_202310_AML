@@ -80,7 +80,7 @@ with st.form(key='FilterForm'):
 
         # station_sel = "0021205012"
         station_sel = "0052055170"
-        hour_sel = 12
+        hour_sel = 1
         print(station_sel)
 
         input_data_ok = True

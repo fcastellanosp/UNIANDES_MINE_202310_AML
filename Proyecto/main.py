@@ -49,6 +49,7 @@ with st.form(key='FilterForm'):
         # st.map(df)
         # print(stations_df[['lat', 'lon']])
         st.map(stations_df[['lat', 'lon']])
+        st.caption("Mapa de estaciones en Colombia...", unsafe_allow_html=False)
 
         # stations_gdf = gpd.GeoDataFrame(
         #     stations_df, geometry=gpd.points_from_xy(stations_df.lon, stations_df.lat), crs="EPSG:4326"
@@ -67,7 +68,6 @@ with st.form(key='FilterForm'):
 
     if submitted1:
         with st.spinner("Procesando datos...."):
-            st.caption("A continuación los resultados...", unsafe_allow_html=False)
 
             # PENDIENTE POR AJUSTAR
             # with row_01_col1:

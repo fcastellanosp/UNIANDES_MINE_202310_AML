@@ -110,42 +110,24 @@ class DataController:
         model_name = f"{station_code}_h{hour}"
         model_path = osp.join(Definitions.ROOT_DIR, "resources/models", f"{model_name}.h5")
         print(model_path)
-        print(f"Existe el modelo?: {osp.exists(model_path)}")
-
-        print("Los datos")
-        print(data)
 
         # data["observacion_normalizada"] = self.prd_scaler.fit_transform(data[["observacion"]])
         prd_scaler = MinMaxScaler(feature_range=(0, 1))
         prd_scaler.fit_transform(data[["observacion"]])
-        print("Escalamiento OK!")
 
-        # data["fecha"] = pd.to_datetime(data["fechaobservacion"])
-        # data["hora"] = data["fecha"].dt.hour
-        # data["hora"] = data["hora"].astype('int32')
-        # data["observacion"] = data["observacion"].astype('float64')
-
-        # data = data[data["hora"] == hour]
-        print("Los datos antes del pivot")
-        print(data)
-
+        # Asegurar tratamiento de datos con la hora seleccionada
+        data = data[data["hora"] == hour]
         data_v_df = pd.pivot_table(data, aggfunc='sum', columns='fecha', index=['hora'],
                                    values='observacion', fill_value=np.nan)
-
-        print("Los datos pivot")
-        print(data_v_df)
 
         # Imputación
         data_v_df = data_v_df.fillna(method='ffill', axis=1)
         data_v_df = data_v_df.fillna(method='bfill', axis=1)
 
+        # Fechas
         input_dates = data_v_df.columns
-        print("input_dates = ")
-        print(input_dates)
 
         X_Real_val = data_v_df.loc[hour, input_dates].values.astype('float32')
-        print("X_Real_val = ")
-        print(X_Real_val)
 
         dataset = prd_scaler.fit_transform(np.reshape(X_Real_val, (-1, 1)))
         dataset = np.reshape(dataset, (-1))
@@ -162,41 +144,41 @@ class DataController:
 
         model_prd = load_model(model_path)
 
-        # make predictions
+        # Predicciones
         trainPredict = model_prd.predict(X_train)
         testPredict = model_prd.predict(X_test)
         metrics = pd.DataFrame(index=['Error Cuadrático Medio - MSE', 'Desviación media cuadrática - RMSE', 'Error absoluto medio - MAE', 'R2'], columns=['Entrenamiento', 'Prueba'])
-        # invert predictions
+        # Los datos estaban escalados
         trainPredict = prd_scaler.inverse_transform(trainPredict)
         trainY = prd_scaler.inverse_transform([Y_train])
         testPredict = prd_scaler.inverse_transform(testPredict)
         testY = prd_scaler.inverse_transform([Y_test])
-        # calculate mean squared error
+        # Calcular MSE
         trainScore = mean_squared_error(trainY[0], trainPredict[:, 0])
         metrics.at['Error Cuadrático Medio - MSE', 'Entrenamiento'] = '{:.2f}'.format(trainScore)
         testScore = mean_squared_error(testY[0], testPredict[:, 0])
         metrics.at['Error Cuadrático Medio - MSE', 'Prueba'] = '{:.2f}'.format(testScore)
-        # calculate root mean squared error
+        # Calcular RMSE
         trainScore = math.sqrt(mean_squared_error(trainY[0], trainPredict[:, 0]))
         metrics.at['Desviación media cuadrática - RMSE', 'Entrenamiento'] = '{:.2f}'.format(trainScore)
         testScore = math.sqrt(mean_squared_error(testY[0], testPredict[:, 0]))
         metrics.at['Desviación media cuadrática - RMSE', 'Prueba'] = '{:.2f}'.format(testScore)
-        # calculate r2
+        # Calcular r2
         trainScore = r2_score(trainY[0], trainPredict[:, 0])
         metrics.at['R2', 'Entrenamiento'] = '{:.2f}'.format(trainScore)
         testScore = r2_score(testY[0], testPredict[:, 0])
         metrics.at['R2', 'Prueba'] = '{:.2f}'.format(testScore)
-        # calculate MAE
+        # Calcular MAE
         trainScore = mean_absolute_error(trainY[0], trainPredict[:, 0])
         metrics.at['Error absoluto medio - MAE', 'Entrenamiento'] = '{:.2f}'.format(trainScore)
         testScore = mean_absolute_error(testY[0], testPredict[:, 0])
         metrics.at['Error absoluto medio - MAE', 'Prueba'] = '{:.2f}'.format(testScore)
 
-        # shift train predictions for plotting
+        # Datos de entrenamiento para presentación de resultados
         trainPredictPlot = np.empty_like(dataset)
         trainPredictPlot[:] = np.nan
         trainPredictPlot[past:len(trainPredict) + past] = np.reshape(trainPredict, -1)
-        # shift test predictions for plotting
+        # Datos de prueba para presentación de resultados
         testPredictPlot = np.empty_like(dataset)
         testPredictPlot[:] = np.nan
         testPredictPlot[len(trainPredict):len(dataset) - 1] = np.reshape(testPredict, -1)

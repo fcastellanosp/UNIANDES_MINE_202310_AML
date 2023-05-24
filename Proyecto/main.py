@@ -1,15 +1,9 @@
 import Definitions
-
-import altair as alt
-import json
-import geopandas as gpd
-import pandas as pd
-import numpy as np
 import streamlit as st
 import matplotlib.pyplot as plt
+import os.path as osp
 import plotly.express as px
 import plotly.graph_objects as go
-import seaborn as sns
 
 from datetime import datetime
 
@@ -51,6 +45,12 @@ with st.form(key='FilterForm'):
         st.map(stations_df[['lat', 'lon']])
         st.caption("Mapa de estaciones en Colombia...", unsafe_allow_html=False)
 
+    # "Datos de las estaciones"
+    with row_01_col2:
+        ":memo: Los datos de estaciones"
+        st.dataframe(stations_df[["codigo", "departamento", "municipio", "nombre", "categoria", "altitud"]])
+        st.metric(label="Total", value=stations_df.shape[0], delta=None)
+
         # stations_gdf = gpd.GeoDataFrame(
         #     stations_df, geometry=gpd.points_from_xy(stations_df.lon, stations_df.lat), crs="EPSG:4326"
         # )
@@ -67,70 +67,91 @@ with st.form(key='FilterForm'):
         # st.plotly_chart(fig)
 
     if submitted1:
-        hour_sel = 12
-        initial_date_sel = str(initial_date)
-        print(type(initial_date))
-        print(initial_date_sel)
-        ending_date_sel = str(ending_date)
-        print(type(ending_date))
-        print(ending_date_sel)
-        with st.spinner("Procesando datos...."):
 
-            # PENDIENTE POR AJUSTAR
-            # with row_01_col1:
-                # "El mapa"
+        initial_date_sel = initial_date.strftime("%Y-%m-%d")
+        ending_date_sel = ending_date.strftime("%Y-%m-%d")
+        hour_sel = hour.hour
+        # hour_sel = 12
+        print(str(station_l3_sel))
 
-            # "Datos de las estaciones"
-            with row_01_col2:
-                ":memo: Los datos de estaciones"
-                st.dataframe(stations_df[["codigo", "departamento", "municipio", "nombre", "categoria", "altitud"]])
-                st.metric(label="Total", value=stations_df.shape[0], delta=None)
+        station_sel = stations_df[(stations_df['nombre'] == str(station_l3_sel))]["codigo"].item()
+        # station_sel = station_sel[-8:]
+        print(station_sel)
 
-            # "Datos de las temperaturas"
-            row_02_col1, row_02_col2 = st.columns(2)
-            with row_02_col1:
-                ":memo: Datos de las observaciones"
-                temp_df = controller.query_temp_station_values()
-                temp_df = temp_df[temp_df["hora"] == hour_sel]
-                st.dataframe(temp_df.sort_values(by='fecha'))
-                st.metric(label="Total", value=temp_df.shape[0], delta=None)
+        # station_sel = "0021205012"
+        station_sel = "0052055170"
+        hour_sel = 0
+        print(station_sel)
 
-            with row_02_col2:
-                ":chart_with_upwards_trend: Comportamiento de las observaciones"
-                temp_fig = px.line(temp_df, x="fecha", y="observacion", title='Temperaturas')
-                st.plotly_chart(temp_fig)
+        input_data_ok = True
+        date_diff = ending_date - initial_date
+        if date_diff.days < 90:
+            input_data_ok = False
 
-            # "Datos de las estimaciones"
-            title, model_dates, X_Real_val, trainPredictPlot, testPredictPlot, metrics = \
-                controller.predict(temp_df, station_code="0021205012", hour=12)
+        model_name = f"{station_sel}_h{hour}"
+        if not osp.join(Definitions.ROOT_DIR, "resources/models", f"{model_name}.h5"):
+            input_data_ok = False
 
-            pred_error_msg = "No fue posible generar la predicción con los parámetros indicados"
-            # row_03_col1, row_03_col2 = st.columns([4, 2])
-            row_03_col1, row_03_col2 = st.columns(2)
-            with row_03_col1:
-                try:
-                    pred_fig = go.Figure()
-                    pred_fig.add_trace(go.Scatter(x=model_dates, y=X_Real_val, mode='lines+markers', name='Real'))
-                    pred_fig.add_trace(go.Scatter(x=model_dates, y=trainPredictPlot, mode='lines+markers', name='Estimado'))
-                    pred_fig.add_trace(go.Scatter(x=model_dates, y=testPredictPlot, mode='lines+markers', name='Predecido'))
+        print(f"input_data_ok: {input_data_ok}")
 
-                    pred_fig.update_layout(title=title, xaxis_title='Dia', yaxis_title='Cantidad')
+        if input_data_ok:
+            with st.spinner("Procesando datos...."):
 
-                    st.plotly_chart(pred_fig)
-                except:
-                    pred_error_msg
+                # PENDIENTE POR AJUSTAR
+                # with row_01_col1:
+                    # "El mapa"
 
-            with row_03_col2:
-                ":chart_with_upwards_trend: Métricas"
-                try:
-                    st.dataframe(metrics)
-                except:
-                    pred_error_msg
+                ## "Datos de las estaciones"
+                #with row_01_col2:
+                #    ":memo: Los datos de estaciones"
+                #    st.dataframe(stations_df[["codigo", "departamento", "municipio", "nombre", "categoria", "altitud"]])
+                #    st.metric(label="Total", value=stations_df.shape[0], delta=None)
 
-            row_04_col1, row_04_col2 = st.columns([4, 1])
+                # "Datos de las temperaturas"
+                row_02_col1, row_02_col2 = st.columns(2)
+                with row_02_col1:
+                    ":memo: Datos de las observaciones"
+                    temp_df = controller.query_temp_station_values(station_sel, initial_date_sel, ending_date_sel)
+                    temp_df = temp_df[temp_df["hora"] == hour_sel]
+                    st.dataframe(temp_df.sort_values(by='fecha'))
+                    st.metric(label="Total", value=temp_df.shape[0], delta=None)
+                    st.caption("Es posible que no existan datos de todas las fechas", unsafe_allow_html=False)
 
-            row_04_col1, row_04_col2, row_04_col3 = st.columns([1, 2, 1])
-            with row_04_col2:
-                with st.expander("Mas Información"):
-                    "Documentación del modelo"
+                with row_02_col2:
+                    ":chart_with_upwards_trend: Comportamiento de las observaciones"
+                    temp_fig = px.line(temp_df, x="fecha", y="observacion", title='Temperaturas')
+                    st.plotly_chart(temp_fig)
+
+                # "Datos de las estimaciones"
+                title, model_dates, X_Real_val, trainPredictPlot, testPredictPlot, metrics = \
+                    controller.predict(temp_df, station_code=station_sel, hour=hour_sel)
+
+                pred_error_msg = "No fue posible generar la predicción con los parámetros indicados"
+                # row_03_col1, row_03_col2 = st.columns([4, 2])
+                row_03_col1, row_03_col2 = st.columns(2)
+                with row_03_col1:
+                    try:
+                        pred_fig = go.Figure()
+                        pred_fig.add_trace(go.Scatter(x=model_dates, y=X_Real_val, mode='lines+markers', name='Real'))
+                        pred_fig.add_trace(go.Scatter(x=model_dates, y=trainPredictPlot, mode='lines+markers', name='Estimado'))
+                        pred_fig.add_trace(go.Scatter(x=model_dates, y=testPredictPlot, mode='lines+markers', name='Predecido'))
+                        pred_fig.update_layout(title=title, xaxis_title='Dia', yaxis_title='Cantidad')
+
+                        st.plotly_chart(pred_fig)
+                    except:
+                        pred_error_msg
+
+                with row_03_col2:
+                    ":chart_with_upwards_trend: Métricas"
+                    try:
+                        st.dataframe(metrics)
+                    except:
+                        pred_error_msg
+
+                row_04_col1, row_04_col2 = st.columns([4, 1])
+
+                row_04_col1, row_04_col2, row_04_col3 = st.columns([1, 2, 1])
+                with row_04_col2:
+                    with st.expander("Mas Información"):
+                        "Documentación del modelo"
 

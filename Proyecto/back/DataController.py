@@ -32,6 +32,11 @@ class DataController:
         obj = x["ubicaci_n"]
         return obj["longitude"]
 
+    def fix_code(self, x):
+        cod = str(x["codigo"]).zfill(10)
+        x["codigo"] = cod
+        return x
+
     # Obtener el listado de estaciones
     def query_all_stations(self):
         client = Socrata(self.open_data_host, self.app_token)
@@ -40,6 +45,8 @@ class DataController:
 
         # Convertir a pandas DataFrame
         self.stations_df = pd.DataFrame.from_records(results)
+        #self.stations_df['codigo'] = self.stations_df['codigo'][-8:]
+        self.stations_df = self.stations_df.apply(self.fix_code, axis=1)
         self.stations_df['lon'] = self.stations_df.apply(self.get_x_coordinate, axis=1)
         self.stations_df['lat'] = self.stations_df.apply(self.get_y_coordinate, axis=1)
         self.stations_df["lon"] = self.stations_df["lon"].astype("float64")
@@ -103,7 +110,7 @@ class DataController:
         temp_station_df["observacion"] = temp_station_df["valorobservado"].astype('float64')
         # temp_station_df["observacion_normalizada"] = self.prd_scaler.fit_transform(temp_station_df[["valorobservado"]])
         temp_station_df = temp_station_df.drop(['fechaobservacion', 'valorobservado'], axis=1)
-        print(temp_station_df)
+        # print(temp_station_df)
         return temp_station_df
 
     def predict(self, data, station_code="0021205012", hour=12):
@@ -140,6 +147,8 @@ class DataController:
         x_train = np.reshape(x_train, (x_train.shape[0], 1, x_train.shape[1]))
         x_test = np.reshape(x_test, (x_test.shape[0], 1, x_test.shape[1]))
 
+        if not osp.exists(model_path):
+            raise "El modelo no ha sido entrenado"
         model_prd = load_model(model_path)
 
         # Predicciones
@@ -186,9 +195,9 @@ class DataController:
 
     """ Función encargada de generar los dataset como línea de tiempo  """
     def create_dataset(self, dataset, look_back=1):
-        dataX, dataY = [], []
+        data_x, data_y = [], []
         for i in range(len(dataset) - look_back):
             a = dataset[i:(i + look_back)]
-            dataX.append(a)
-            dataY.append(dataset[i + look_back])
-        return np.array(dataX), np.array(dataY)
+            data_x.append(a)
+            data_y.append(dataset[i + look_back])
+        return np.array(data_x), np.array(data_y)

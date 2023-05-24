@@ -1,4 +1,5 @@
 from datetime import datetime
+from datetime import timedelta
 
 class Labels:
 
@@ -15,5 +16,6 @@ class Labels:
         self.default_state = "State"
 
         date_format = "%Y/%m/%d"
-        self.default_init_date = datetime.strptime("2023/01/01", date_format)
-        self.default_ending_date = datetime.strptime(datetime.now().strftime(date_format), date_format)
+        self.default_init_date = datetime.strptime("2022/01/01", date_format)
+        # self.default_ending_date = datetime.strptime(datetime.now().strftime(date_format), date_format)
+        self.default_ending_date = self.default_init_date + timedelta(days=90)

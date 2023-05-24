@@ -67,6 +67,13 @@ with st.form(key='FilterForm'):
         # st.plotly_chart(fig)
 
     if submitted1:
+        hour_sel = 12
+        initial_date_sel = str(initial_date)
+        print(type(initial_date))
+        print(initial_date_sel)
+        ending_date_sel = str(ending_date)
+        print(type(ending_date))
+        print(ending_date_sel)
         with st.spinner("Procesando datos...."):
 
             # PENDIENTE POR AJUSTAR
@@ -84,7 +91,8 @@ with st.form(key='FilterForm'):
             with row_02_col1:
                 ":memo: Datos de las observaciones"
                 temp_df = controller.query_temp_station_values()
-                st.dataframe(temp_df)
+                temp_df = temp_df[temp_df["hora"] == hour_sel]
+                st.dataframe(temp_df.sort_values(by='fecha'))
                 st.metric(label="Total", value=temp_df.shape[0], delta=None)
 
             with row_02_col2:

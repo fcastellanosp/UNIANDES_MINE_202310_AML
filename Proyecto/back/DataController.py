@@ -110,29 +110,42 @@ class DataController:
         model_name = f"{station_code}_h{hour}"
         model_path = osp.join(Definitions.ROOT_DIR, "resources/models", f"{model_name}.h5")
         print(model_path)
-        print(osp.exists(model_path))
+        print(f"Existe el modelo?: {osp.exists(model_path)}")
+
+        print("Los datos")
+        print(data)
 
         # data["observacion_normalizada"] = self.prd_scaler.fit_transform(data[["observacion"]])
         prd_scaler = MinMaxScaler(feature_range=(0, 1))
         prd_scaler.fit_transform(data[["observacion"]])
+        print("Escalamiento OK!")
 
-        data["fecha"] = pd.to_datetime(data["fechaobservacion"])
-        data["hora"] = data["fecha"].dt.hour
-        data["hora"] = data["hora"].astype('int32')
-        data["valorobservado"] = data["valorobservado"].astype('float64')
+        # data["fecha"] = pd.to_datetime(data["fechaobservacion"])
+        # data["hora"] = data["fecha"].dt.hour
+        # data["hora"] = data["hora"].astype('int32')
+        # data["observacion"] = data["observacion"].astype('float64')
 
-        data = data[data["hora"] == hour]
+        # data = data[data["hora"] == hour]
+        print("Los datos antes del pivot")
+        print(data)
 
-        data_v_df = pd.pivot_table(data, aggfunc='sum', columns='fecha',
-                                                 index=['hora'], values='observacion_normalizada', fill_value=np.nan)
+        data_v_df = pd.pivot_table(data, aggfunc='sum', columns='fecha', index=['hora'],
+                                   values='observacion', fill_value=np.nan)
+
+        print("Los datos pivot")
+        print(data_v_df)
 
         # Imputación
         data_v_df = data_v_df.fillna(method='ffill', axis=1)
         data_v_df = data_v_df.fillna(method='bfill', axis=1)
 
         input_dates = data_v_df.columns
+        print("input_dates = ")
+        print(input_dates)
 
         X_Real_val = data_v_df.loc[hour, input_dates].values.astype('float32')
+        print("X_Real_val = ")
+        print(X_Real_val)
 
         dataset = prd_scaler.fit_transform(np.reshape(X_Real_val, (-1, 1)))
         dataset = np.reshape(dataset, (-1))
@@ -141,6 +154,8 @@ class DataController:
         past, future = 8, 1
         X_train, Y_train = self.create_dataset(train, past)
         X_test, Y_test = self.create_dataset(test, past)
+        print("X_train = ")
+        print(X_train)
 
         X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
         X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
@@ -186,7 +201,6 @@ class DataController:
         testPredictPlot[:] = np.nan
         testPredictPlot[len(trainPredict):len(dataset) - 1] = np.reshape(testPredict, -1)
 
-        print(model_prd.name)
         title = f"Prediccción con {model_prd.name}, ventana [{past} días]"
         return title, input_dates, X_Real_val, trainPredictPlot, testPredictPlot
 

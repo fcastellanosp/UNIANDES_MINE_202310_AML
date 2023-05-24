@@ -104,6 +104,11 @@ class DataController:
         # Convertir a pandas DataFrame
         temp_station_df = pd.DataFrame.from_records(results)
 
+        # print(temp_station_df)
+
+        if temp_station_df.shape[0] == 0:
+            return temp_station_df
+
         temp_station_df["fecha"] = pd.to_datetime(temp_station_df["fechaobservacion"]).dt.date
         temp_station_df["hora"] = pd.to_datetime(temp_station_df["fechaobservacion"]).dt.hour.astype('int32')
         # validation_station_df["hora"] = validation_station_df["hora"].astype('int32')
@@ -138,11 +143,16 @@ class DataController:
 
         dataset = prd_scaler.fit_transform(np.reshape(x_real_val, (-1, 1)))
         dataset = np.reshape(dataset, (-1))
+        print(dataset)
         train, test = dataset[:-31], dataset[-46:]
 
         past, future = 8, 1
         x_train, y_train = self.create_dataset(train, past)
+        print(x_train)
+        print(y_train)
         x_test, y_test = self.create_dataset(test, past)
+        print(x_test)
+        print(y_test)
 
         x_train = np.reshape(x_train, (x_train.shape[0], 1, x_train.shape[1]))
         x_test = np.reshape(x_test, (x_test.shape[0], 1, x_test.shape[1]))

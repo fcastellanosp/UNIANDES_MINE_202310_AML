@@ -11,6 +11,7 @@ from Labels import Labels
 from back.DataController import DataController
 
 # Variables
+min_instances = 150
 lbl = Labels()
 controller = DataController(True)
 stations_df = controller.stations_df
@@ -72,16 +73,16 @@ with st.form(key='FilterForm'):
         ending_date_sel = ending_date.strftime("%Y-%m-%d")
         hour_sel = hour.hour
         # hour_sel = 12
-        print(str(station_l3_sel))
+        # print(str(station_l3_sel))
 
         station_sel = stations_df[(stations_df['nombre'] == str(station_l3_sel))]["codigo"].item()
         # station_sel = station_sel[-8:]
-        print(station_sel)
+        # print(station_sel)
 
         # station_sel = "0021205012"
-        station_sel = "0052055170"
-        hour_sel = 1
-        print(station_sel)
+        # station_sel = "0052055170"
+        # hour_sel = 1
+        # print(station_sel)
 
         input_data_ok = True
         date_diff = ending_date - initial_date
@@ -112,19 +113,25 @@ with st.form(key='FilterForm'):
                 with row_02_col1:
                     ":memo: Datos de las observaciones"
                     temp_df = controller.query_temp_station_values(station_sel, initial_date_sel, ending_date_sel)
-                    temp_df = temp_df[temp_df["hora"] == hour_sel]
-                    st.dataframe(temp_df.sort_values(by='fecha'))
-                    st.metric(label="Total", value=temp_df.shape[0], delta=None)
-                    st.caption("Es posible que no existan datos de todas las fechas", unsafe_allow_html=False)
+                    print(temp_df)
+                    if temp_df.shape[0] > 0:
+                        temp_df = temp_df[temp_df["hora"] == hour_sel]
+                        st.dataframe(temp_df.sort_values(by='fecha'))
+                        st.metric(label="Total", value=temp_df.shape[0], delta=None)
+                        st.caption("Es posible que no existan datos de todas las fechas", unsafe_allow_html=False)
+                        if temp_df.shape[0] < min_instances:
+                            st.caption(f"Se requieren al menos ({min_instances}) registros, cuenta con: {temp_df.shape[0]}", unsafe_allow_html=False)
 
                 with row_02_col2:
                     ":chart_with_upwards_trend: Comportamiento de las observaciones"
-                    temp_fig = px.line(temp_df, x="fecha", y="observacion", title='Temperaturas')
-                    st.plotly_chart(temp_fig)
+                    if temp_df.shape[0] > 0:
+                        temp_fig = px.line(temp_df, x="fecha", y="observacion", title='Temperaturas')
+                        st.plotly_chart(temp_fig)
 
                 # "Datos de las estimaciones"
-                title, model_dates, X_Real_val, trainPredictPlot, testPredictPlot, metrics = \
-                    controller.predict(temp_df, station_code=station_sel, hour=hour_sel)
+                if temp_df.shape[0] > 0 and temp_df.shape[0] >= min_instances:
+                    title, model_dates, X_Real_val, trainPredictPlot, testPredictPlot, metrics = \
+                        controller.predict(temp_df, station_code=station_sel, hour=hour_sel)
 
                 pred_error_msg = "No fue posible generar la predicción con los parámetros indicados"
                 # row_03_col1, row_03_col2 = st.columns([4, 2])

@@ -113,7 +113,7 @@ with st.form(key='FilterForm'):
                 with row_02_col1:
                     ":memo: Datos de las observaciones"
                     temp_df = controller.query_temp_station_values(station_sel, initial_date_sel, ending_date_sel)
-                    print(temp_df)
+                    # print(temp_df)
                     if temp_df.shape[0] > 0:
                         temp_df = temp_df[temp_df["hora"] == hour_sel]
                         st.dataframe(temp_df.sort_values(by='fecha'))
@@ -160,5 +160,9 @@ with st.form(key='FilterForm'):
                 row_04_col1, row_04_col2, row_04_col3 = st.columns([1, 2, 1])
                 with row_04_col2:
                     with st.expander("Mas Información"):
-                        "Documentación del modelo"
+                        "Los modelos LSTM utilizados en este proyecto han demostrado ser eficaces para analizar la variación temporal de la temperatura mínima en Colombia. Estos modelos tienen la capacidad de capturar patrones complejos en los datos y generar predicciones precisas. Esto sugiere que los modelos LSTM pueden ser una herramienta útil para estudiar y predecir el clima en otras regiones o para analizar diferentes variables climáticas."
+                        "Los resultados obtenidos en este proyecto resaltan la importancia de monitorear y comprender los cambios en la temperatura mínima en Colombia. Estos cambios pueden tener impactos significativos en diferentes aspectos, como la agricultura, la salud pública y los ecosistemas. El análisis de la variación temporal de la temperatura mínima proporciona información valiosa para comprender mejor el clima y tomar decisiones informadas en áreas relacionadas."
+                        ""
+                        f"© Datos de estaciones de IDEAM compartidos en {controller.open_data_host}"
+
 

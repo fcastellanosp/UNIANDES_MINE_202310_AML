@@ -165,7 +165,7 @@ class DataController:
         # make predictions
         trainPredict = model_prd.predict(X_train)
         testPredict = model_prd.predict(X_test)
-        resultados = pd.DataFrame(index=['MSE', 'RMSE', 'MAE', 'R2'], columns=['Train', 'Test'])
+        metrics = pd.DataFrame(index=['MSE', 'RMSE', 'MAE', 'R2'], columns=['Train', 'Test'])
         # invert predictions
         trainPredict = prd_scaler.inverse_transform(trainPredict)
         trainY = prd_scaler.inverse_transform([Y_train])
@@ -173,24 +173,24 @@ class DataController:
         testY = prd_scaler.inverse_transform([Y_test])
         # calculate mean squared error
         trainScore = mean_squared_error(trainY[0], trainPredict[:, 0])
-        resultados.at['MSE', 'Train'] = '{:.2f}'.format(trainScore)
+        metrics.at['MSE', 'Train'] = '{:.2f}'.format(trainScore)
         testScore = mean_squared_error(testY[0], testPredict[:, 0])
-        resultados.at['MSE', 'Test'] = '{:.2f}'.format(testScore)
+        metrics.at['MSE', 'Test'] = '{:.2f}'.format(testScore)
         # calculate root mean squared error
         trainScore = math.sqrt(mean_squared_error(trainY[0], trainPredict[:, 0]))
-        resultados.at['RMSE', 'Train'] = '{:.2f}'.format(trainScore)
+        metrics.at['RMSE', 'Train'] = '{:.2f}'.format(trainScore)
         testScore = math.sqrt(mean_squared_error(testY[0], testPredict[:, 0]))
-        resultados.at['RMSE', 'Test'] = '{:.2f}'.format(testScore)
+        metrics.at['RMSE', 'Test'] = '{:.2f}'.format(testScore)
         # calculate r2
         trainScore = r2_score(trainY[0], trainPredict[:, 0])
-        resultados.at['R2', 'Train'] = '{:.2f}'.format(trainScore)
+        metrics.at['R2', 'Train'] = '{:.2f}'.format(trainScore)
         testScore = r2_score(testY[0], testPredict[:, 0])
-        resultados.at['R2', 'Test'] = '{:.2f}'.format(testScore)
+        metrics.at['R2', 'Test'] = '{:.2f}'.format(testScore)
         # calculate MAE
         trainScore = mean_absolute_error(trainY[0], trainPredict[:, 0])
-        resultados.at['MAE', 'Train'] = '{:.2f}'.format(trainScore)
+        metrics.at['MAE', 'Train'] = '{:.2f}'.format(trainScore)
         testScore = mean_absolute_error(testY[0], testPredict[:, 0])
-        resultados.at['MAE', 'Test'] = '{:.2f}'.format(testScore)
+        metrics.at['MAE', 'Test'] = '{:.2f}'.format(testScore)
 
         # shift train predictions for plotting
         trainPredictPlot = np.empty_like(dataset)
@@ -202,7 +202,7 @@ class DataController:
         testPredictPlot[len(trainPredict):len(dataset) - 1] = np.reshape(testPredict, -1)
 
         title = f"Prediccción con {model_prd.name}, ventana [{past} días]"
-        return title, input_dates, X_Real_val, trainPredictPlot, testPredictPlot
+        return title, input_dates, X_Real_val, trainPredictPlot, testPredictPlot, metrics
 
     """ Función enargada de generar los dataset como línea de tiempo  """
     def create_dataset(self, dataset, look_back=1):

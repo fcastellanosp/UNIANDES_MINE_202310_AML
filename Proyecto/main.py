@@ -93,12 +93,13 @@ with st.form(key='FilterForm'):
                 st.plotly_chart(temp_fig)
 
             # "Datos de las estimaciones"
+            title, model_dates, X_Real_val, trainPredictPlot, testPredictPlot, metrics = \
+                controller.predict(temp_df, station_code="0021205012", hour=12)
+
+            pred_error_msg = "No fue posible generar la predicción con los parámetros indicados"
             row_03_col1, row_03_col2 = st.columns([4, 1])
             with row_03_col1:
                 try:
-                    title, model_dates, X_Real_val, \
-                    trainPredictPlot, testPredictPlot = controller.predict(temp_df, station_code="0021205012", hour=12)
-
                     pred_fig = go.Figure()
                     pred_fig.add_trace(go.Scatter(x=model_dates, y=X_Real_val, mode='lines+markers', name='Real'))
                     pred_fig.add_trace(go.Scatter(x=model_dates, y=trainPredictPlot, mode='lines+markers', name='Estimado'))
@@ -108,10 +109,14 @@ with st.form(key='FilterForm'):
 
                     st.plotly_chart(pred_fig)
                 except:
-                    "No fue posible generar la predicción con los parámetros indicados"
+                    pred_error_msg
 
             with row_03_col2:
-                "Pendiente"
+                ":chart_with_upwards_trend: Métricas"
+                try:
+                    st.dataframe(metrics)
+                except:
+                    pred_error_msg
 
             row_04_col1, row_04_col2 = st.columns([4, 1])
 

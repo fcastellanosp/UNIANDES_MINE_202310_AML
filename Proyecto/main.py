@@ -36,12 +36,12 @@ with st.form(key='FilterForm'):
         station_l3_sel = st.selectbox("Estación", stations_df[["nombre"]].sort_values(by='nombre'), help="Estación de monitoreo")
 
         subtitle_3 = st.sidebar.write("Para la temporalidad")
-        initial_date = st.date_input("Fecha", lbl.default_init_date)
-
-        subtitle_4 = st.sidebar.write("Para el pronóstivo")
+        initial_date = st.date_input("Fecha Inicial", lbl.default_init_date)
+        ending_date = st.date_input("Fecha Final", lbl.default_ending_date)
+        # subtitle_4 = st.sidebar.write("Para el pronóstivo")
         hour = st.time_input('Hora', value=hour_dt, step=60*60, help="Permitirá ver la información basado en la hora del día")
 
-        submitted1 = st.form_submit_button(label='Submit 🔎')
+        submitted1 = st.form_submit_button(label='Generar 🔎')
 
     row_01_col1, row_01_col2 = st.columns(2)
     with row_01_col1:
@@ -69,19 +69,42 @@ with st.form(key='FilterForm'):
         with st.spinner("Procesando datos...."):
             st.caption("A continuación los resultados...", unsafe_allow_html=False)
 
-            with row_01_col2:
-                ":chart: Tendencia"
+            # PENDIENTE POR AJUSTAR
+            # with row_01_col1:
+                # "El mapa"
 
-            row_02_col1, row_02_col2 = st.columns([2, 2])
-            with row_02_col1:
+            # "Datos de las estaciones"
+            with row_01_col2:
                 ":memo: Los datos de estaciones"
                 st.dataframe(stations_df[["codigo", "departamento", "municipio", "nombre", "categoria", "altitud"]])
+                st.metric(label="Total", value=stations_df.shape[0], delta=None)
+
+            # "Datos de las temperaturas"
+            row_02_col1, row_02_col2 = st.columns(2)
+            with row_02_col1:
+                ":memo: Datos de las observaciones"
+                temp_df = controller.query_temp_station_values()
+                st.dataframe(temp_df)
+                st.metric(label="Total", value=temp_df.shape[0], delta=None)
 
             with row_02_col2:
-                ":memo: Insumo para el pronóstico"
-                "datos de temperatura"
+                ":chart_with_upwards_trend: Comportamiento de las observaciones"
+                temp_fig = px.line(temp_df, x="fecha", y="observacion", title='Temperaturas')
+                st.plotly_chart(temp_fig)
 
-            row_03_col1, row_03_col2, row_03_col3 = st.columns([1, 2, 1])
+            # "Datos de las estimaciones"
+            row_03_col1, row_03_col2 = st.columns([4, 1])
+            with row_03_col1:
+                "Pendiente"
+                controller.predict(temp_df)
+
             with row_03_col2:
-                with st.expander("See source data"):
+                "Pendiente"
+
+            row_04_col1, row_04_col2 = st.columns([4, 1])
+
+            row_04_col1, row_04_col2, row_04_col3 = st.columns([1, 2, 1])
+            with row_04_col2:
+                with st.expander("Mas Información"):
                     "Documentación del modelo"
+

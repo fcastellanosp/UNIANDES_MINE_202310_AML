@@ -165,7 +165,7 @@ class DataController:
         # make predictions
         trainPredict = model_prd.predict(X_train)
         testPredict = model_prd.predict(X_test)
-        metrics = pd.DataFrame(index=['MSE', 'RMSE', 'MAE', 'R2'], columns=['Train', 'Test'])
+        metrics = pd.DataFrame(index=['Error Cuadrático Medio - MSE', 'Desviación media cuadrática - RMSE', 'Error absoluto medio - MAE', 'R2'], columns=['Entrenamiento', 'Prueba'])
         # invert predictions
         trainPredict = prd_scaler.inverse_transform(trainPredict)
         trainY = prd_scaler.inverse_transform([Y_train])
@@ -173,24 +173,24 @@ class DataController:
         testY = prd_scaler.inverse_transform([Y_test])
         # calculate mean squared error
         trainScore = mean_squared_error(trainY[0], trainPredict[:, 0])
-        metrics.at['MSE', 'Train'] = '{:.2f}'.format(trainScore)
+        metrics.at['Error Cuadrático Medio - MSE', 'Entrenamiento'] = '{:.2f}'.format(trainScore)
         testScore = mean_squared_error(testY[0], testPredict[:, 0])
-        metrics.at['MSE', 'Test'] = '{:.2f}'.format(testScore)
+        metrics.at['Error Cuadrático Medio - MSE', 'Prueba'] = '{:.2f}'.format(testScore)
         # calculate root mean squared error
         trainScore = math.sqrt(mean_squared_error(trainY[0], trainPredict[:, 0]))
-        metrics.at['RMSE', 'Train'] = '{:.2f}'.format(trainScore)
+        metrics.at['Desviación media cuadrática - RMSE', 'Entrenamiento'] = '{:.2f}'.format(trainScore)
         testScore = math.sqrt(mean_squared_error(testY[0], testPredict[:, 0]))
-        metrics.at['RMSE', 'Test'] = '{:.2f}'.format(testScore)
+        metrics.at['Desviación media cuadrática - RMSE', 'Prueba'] = '{:.2f}'.format(testScore)
         # calculate r2
         trainScore = r2_score(trainY[0], trainPredict[:, 0])
-        metrics.at['R2', 'Train'] = '{:.2f}'.format(trainScore)
+        metrics.at['R2', 'Entrenamiento'] = '{:.2f}'.format(trainScore)
         testScore = r2_score(testY[0], testPredict[:, 0])
-        metrics.at['R2', 'Test'] = '{:.2f}'.format(testScore)
+        metrics.at['R2', 'Prueba'] = '{:.2f}'.format(testScore)
         # calculate MAE
         trainScore = mean_absolute_error(trainY[0], trainPredict[:, 0])
-        metrics.at['MAE', 'Train'] = '{:.2f}'.format(trainScore)
+        metrics.at['Error absoluto medio - MAE', 'Entrenamiento'] = '{:.2f}'.format(trainScore)
         testScore = mean_absolute_error(testY[0], testPredict[:, 0])
-        metrics.at['MAE', 'Test'] = '{:.2f}'.format(testScore)
+        metrics.at['Error absoluto medio - MAE', 'Prueba'] = '{:.2f}'.format(testScore)
 
         # shift train predictions for plotting
         trainPredictPlot = np.empty_like(dataset)

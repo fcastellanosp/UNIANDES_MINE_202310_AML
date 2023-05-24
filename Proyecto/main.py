@@ -97,7 +97,8 @@ with st.form(key='FilterForm'):
                 controller.predict(temp_df, station_code="0021205012", hour=12)
 
             pred_error_msg = "No fue posible generar la predicción con los parámetros indicados"
-            row_03_col1, row_03_col2 = st.columns([4, 1])
+            # row_03_col1, row_03_col2 = st.columns([4, 2])
+            row_03_col1, row_03_col2 = st.columns(2)
             with row_03_col1:
                 try:
                     pred_fig = go.Figure()

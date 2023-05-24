@@ -164,5 +164,7 @@ with st.form(key='FilterForm'):
                         "Los resultados obtenidos en este proyecto resaltan la importancia de monitorear y comprender los cambios en la temperatura mínima en Colombia. Estos cambios pueden tener impactos significativos en diferentes aspectos, como la agricultura, la salud pública y los ecosistemas. El análisis de la variación temporal de la temperatura mínima proporciona información valiosa para comprender mejor el clima y tomar decisiones informadas en áreas relacionadas."
                         ""
                         f"© Datos de estaciones de IDEAM compartidos en {controller.open_data_host}"
+                        st.write(
+                            "Código fuente [link](https://github.com/fcastellanosp/UNIANDES_MINE_202310_AML/tree/main/Proyecto)")
 
 

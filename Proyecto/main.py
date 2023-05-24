@@ -8,7 +8,7 @@ import numpy as np
 import streamlit as st
 import matplotlib.pyplot as plt
 import plotly.express as px
-# import plotly.graph_objects as go
+import plotly.graph_objects as go
 import seaborn as sns
 
 from datetime import datetime
@@ -95,8 +95,20 @@ with st.form(key='FilterForm'):
             # "Datos de las estimaciones"
             row_03_col1, row_03_col2 = st.columns([4, 1])
             with row_03_col1:
-                "Pendiente"
-                controller.predict(temp_df)
+                try:
+                    title, model_dates, X_Real_val, \
+                    trainPredictPlot, testPredictPlot = controller.predict(temp_df, station_code="0021205012", hour=12)
+
+                    pred_fig = go.Figure()
+                    pred_fig.add_trace(go.Scatter(x=model_dates, y=X_Real_val, mode='lines+markers', name='Real'))
+                    pred_fig.add_trace(go.Scatter(x=model_dates, y=trainPredictPlot, mode='lines+markers', name='Estimado'))
+                    pred_fig.add_trace(go.Scatter(x=model_dates, y=testPredictPlot, mode='lines+markers', name='Predecido'))
+
+                    pred_fig.update_layout(title=title, xaxis_title='Dia', yaxis_title='Cantidad')
+
+                    st.plotly_chart(pred_fig)
+                except:
+                    "No fue posible generar la predicción con los parámetros indicados"
 
             with row_03_col2:
                 "Pendiente"

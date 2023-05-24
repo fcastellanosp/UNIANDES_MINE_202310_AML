@@ -1,9 +1,11 @@
 import Definitions
+import math
 import numpy as np
 import pandas as pd
 import os.path as osp
 
 from keras.models import load_model
+from sklearn.metrics import mean_squared_error, r2_score,mean_absolute_error
 from sklearn.preprocessing import MinMaxScaler
 from sodapy import Socrata
 
@@ -17,7 +19,7 @@ class DataController:
         self.app_token = "qgHbkdSlEXEA5tsCEFeDngbpa"
         self.stations_df = None
         self.temperature_fields = ["codigoestacion", "fechaobservacion", "valorobservado"]
-        self.prd_scaler = MinMaxScaler(feature_range=(0, 1))
+        #self.prd_scaler = MinMaxScaler(feature_range=(0, 1))
 
         if load_data == True:
             self.query_all_stations()
@@ -110,33 +112,85 @@ class DataController:
         print(model_path)
         print(osp.exists(model_path))
 
-        data["observacion_normalizada"] = self.prd_scaler.fit_transform(data[["observacion"]])
+        # data["observacion_normalizada"] = self.prd_scaler.fit_transform(data[["observacion"]])
+        prd_scaler = MinMaxScaler(feature_range=(0, 1))
+        prd_scaler.fit_transform(data[["observacion"]])
+
+        data["fecha"] = pd.to_datetime(data["fechaobservacion"])
+        data["hora"] = data["fecha"].dt.hour
+        data["hora"] = data["hora"].astype('int32')
+        data["valorobservado"] = data["valorobservado"].astype('float64')
+
+        data = data[data["hora"] == hour]
 
         data_v_df = pd.pivot_table(data, aggfunc='sum', columns='fecha',
                                                  index=['hora'], values='observacion_normalizada', fill_value=np.nan)
 
+        # Imputación
         data_v_df = data_v_df.fillna(method='ffill', axis=1)
         data_v_df = data_v_df.fillna(method='bfill', axis=1)
 
         input_dates = data_v_df.columns
 
-        x_hour_real = data_v_df.loc[hour, input_dates].values.astype('float32')
-        print(x_hour_real.shape)
+        X_Real_val = data_v_df.loc[hour, input_dates].values.astype('float32')
+
+        dataset = prd_scaler.fit_transform(np.reshape(X_Real_val, (-1, 1)))
+        dataset = np.reshape(dataset, (-1))
+        train, test = dataset[:-31], dataset[-46:]
 
         past, future = 8, 1
-        x_real, x_real_lookback = self.create_dataset(x_hour_real, past)
+        X_train, Y_train = self.create_dataset(train, past)
+        X_test, Y_test = self.create_dataset(test, past)
 
-        x_real_rdim = np.reshape(x_real, (x_real.shape[0], 1, x_real.shape[1]))
-        print(x_real_rdim.shape)
-        print(x_real_rdim)
+        X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
+        X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
 
         model_prd = load_model(model_path)
-        # print(model_prd)
-        # y_pred = model_prd.predict(X_real_rdim)
-        # y_pred_ = self.prd_scaler.inverse_transform(y_pred)
 
+        # make predictions
+        trainPredict = model_prd.predict(X_train)
+        testPredict = model_prd.predict(X_test)
+        resultados = pd.DataFrame(index=['MSE', 'RMSE', 'MAE', 'R2'], columns=['Train', 'Test'])
+        # invert predictions
+        trainPredict = prd_scaler.inverse_transform(trainPredict)
+        trainY = prd_scaler.inverse_transform([Y_train])
+        testPredict = prd_scaler.inverse_transform(testPredict)
+        testY = prd_scaler.inverse_transform([Y_test])
+        # calculate mean squared error
+        trainScore = mean_squared_error(trainY[0], trainPredict[:, 0])
+        resultados.at['MSE', 'Train'] = '{:.2f}'.format(trainScore)
+        testScore = mean_squared_error(testY[0], testPredict[:, 0])
+        resultados.at['MSE', 'Test'] = '{:.2f}'.format(testScore)
+        # calculate root mean squared error
+        trainScore = math.sqrt(mean_squared_error(trainY[0], trainPredict[:, 0]))
+        resultados.at['RMSE', 'Train'] = '{:.2f}'.format(trainScore)
+        testScore = math.sqrt(mean_squared_error(testY[0], testPredict[:, 0]))
+        resultados.at['RMSE', 'Test'] = '{:.2f}'.format(testScore)
+        # calculate r2
+        trainScore = r2_score(trainY[0], trainPredict[:, 0])
+        resultados.at['R2', 'Train'] = '{:.2f}'.format(trainScore)
+        testScore = r2_score(testY[0], testPredict[:, 0])
+        resultados.at['R2', 'Test'] = '{:.2f}'.format(testScore)
+        # calculate MAE
+        trainScore = mean_absolute_error(trainY[0], trainPredict[:, 0])
+        resultados.at['MAE', 'Train'] = '{:.2f}'.format(trainScore)
+        testScore = mean_absolute_error(testY[0], testPredict[:, 0])
+        resultados.at['MAE', 'Test'] = '{:.2f}'.format(testScore)
 
-        """ Función enargada de generar los dataset como línea de tiempo  """
+        # shift train predictions for plotting
+        trainPredictPlot = np.empty_like(dataset)
+        trainPredictPlot[:] = np.nan
+        trainPredictPlot[past:len(trainPredict) + past] = np.reshape(trainPredict, -1)
+        # shift test predictions for plotting
+        testPredictPlot = np.empty_like(dataset)
+        testPredictPlot[:] = np.nan
+        testPredictPlot[len(trainPredict):len(dataset) - 1] = np.reshape(testPredict, -1)
+
+        print(model_prd.name)
+        title = f"Prediccción con {model_prd.name}, ventana [{past} días]"
+        return title, input_dates, X_Real_val, trainPredictPlot, testPredictPlot
+
+    """ Función enargada de generar los dataset como línea de tiempo  """
     def create_dataset(self, dataset, look_back=1):
         dataX, dataY = [], []
         for i in range(len(dataset) - look_back):

@@ -59,6 +59,7 @@ class DataController:
 
         # model_df = model_df[["codigo_"]].value_counts()
         model_df = model_df.groupby(['codigo'])['codigo_'].count().reset_index()
+        model_df = model_df.drop("codigo_", axis=1)
 
         # Convertir a pandas DataFrame
         self.stations_df = pd.DataFrame.from_records(results)
@@ -69,6 +70,9 @@ class DataController:
         self.stations_df["lon"] = self.stations_df["lon"].astype("float64")
         self.stations_df["lat"] = self.stations_df["lat"].astype("float64")
         self.stations_df["altitud"] = self.stations_df["altitud"].astype("float64")
+
+        self.stations_df = pd.merge(model_df, self.stations_df, on="codigo")
+        # print(self.stations_df)
 
         return self.stations_df
 

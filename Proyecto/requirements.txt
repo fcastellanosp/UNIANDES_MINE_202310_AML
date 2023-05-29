@@ -1,7 +1,9 @@
+folium
 geopandas
 keras
 keras-preprocessing
 keras-tuner
+leafmap
 matplotlib
 numpy
 pandas

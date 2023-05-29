@@ -2,6 +2,7 @@ import Definitions
 import math
 import numpy as np
 import pandas as pd
+import os
 import os.path as osp
 
 from keras.models import load_model
@@ -19,9 +20,9 @@ class DataController:
         self.app_token = "qgHbkdSlEXEA5tsCEFeDngbpa"
         self.stations_df = None
         self.temperature_fields = ["codigoestacion", "fechaobservacion", "valorobservado"]
-        #self.prd_scaler = MinMaxScaler(feature_range=(0, 1))
+        # self.prd_scaler = MinMaxScaler(feature_range=(0, 1))
 
-        if load_data == True:
+        if load_data:
             self.query_all_stations()
 
     def get_y_coordinate(self, x):
@@ -37,15 +38,31 @@ class DataController:
         x["codigo"] = cod
         return x
 
+    def fix_code2(self, x):
+        return x[:10]
+
     # Obtener el listado de estaciones
     def query_all_stations(self):
         client = Socrata(self.open_data_host, self.app_token)
         query = "categoria LIKE 'Climática%' AND estado = 'Activa'"
         results = client.get(self.stations_ds_id, where=query, limit=10000)
 
+        model_path = osp.join(Definitions.ROOT_DIR, "resources/models")
+        model_list = []
+        for path in os.listdir(model_path):
+            if osp.isfile(osp.join(model_path, path)):
+                model_list.append(path)
+
+        model_df = pd.DataFrame( { "codigo": model_list } )
+        model_df["codigo_"] = model_df["codigo"].apply(self.fix_code2)
+        model_df["codigo"] = model_df["codigo_"]
+
+        # model_df = model_df[["codigo_"]].value_counts()
+        model_df = model_df.groupby(['codigo'])['codigo_'].count().reset_index()
+
         # Convertir a pandas DataFrame
         self.stations_df = pd.DataFrame.from_records(results)
-        #self.stations_df['codigo'] = self.stations_df['codigo'][-8:]
+        # self.stations_df['codigo'] = self.stations_df['codigo'][-8:]
         self.stations_df = self.stations_df.apply(self.fix_code, axis=1)
         self.stations_df['lon'] = self.stations_df.apply(self.get_x_coordinate, axis=1)
         self.stations_df['lat'] = self.stations_df.apply(self.get_y_coordinate, axis=1)
@@ -56,14 +73,15 @@ class DataController:
         return self.stations_df
 
     # Obtener el listado de departamentos
-    def query_dpto(self):
+    def query_dep(self):
         if self.stations_df is None:
             self.query_all_stations()
 
         results = self.stations_df.groupby(['departamento'])['estado'].count().reset_index()
         results = results.sort_values(by='departamento', ascending=True)
         results = results.drop("estado", axis=1)
-        return results
+        # print(results.dtypes)
+        return results["departamento"]
 
     # Obtener el listado de municipios dado un departamento
     def query_mun(self, dpto=""):
@@ -78,9 +96,24 @@ class DataController:
         results = results.groupby(['municipio'])['estado'].count().reset_index()
         results = results.sort_values(by='municipio', ascending=True)
         results = results.drop("estado", axis=1)
-        return results
+        return results["municipio"]
 
-    # Obtener el listado de municipios dado un departamento
+    # Obtener el listado de estaciones dado un departamento
+    def query_stations_by_dep(self, dpto=""):
+        if dpto == "":
+            return
+
+        if self.stations_df is None:
+            self.query_all_stations()
+
+        results = self.stations_df.copy()
+        results = results[(results['departamento'] == dpto)]
+        results = results.groupby(['nombre'])['estado'].count().reset_index()
+        results = results.sort_values(by='nombre', ascending=True)
+        results = results.drop("estado", axis=1)
+        return results["nombre"]
+
+    # Obtener el listado de estaciones dado un municipio
     def query_stations_by_mun(self, mun=""):
         if mun == "":
             return
@@ -90,11 +123,13 @@ class DataController:
 
         results = self.stations_df.copy()
         results = results[(results['municipio'] == mun)]
-        results = results.groupby(['municipio'])['estado'].count().reset_index()
-        results = results.sort_values(by='municipio', ascending=True)
+        results = results.groupby(['nombre'])['estado'].count().reset_index()
+        results = results.sort_values(by='nombre', ascending=True)
         results = results.drop("estado", axis=1)
-        return results
+        return results["nombre"]
 
+
+    # Obtener los valores de las estaciones mediante servicio
     def query_temp_station_values(self, station_code="0021205012", start_date="2020-01-01", ending_date="2020-04-30"):
         client = Socrata(self.open_data_host, self.app_token)
         query = f"codigoestacion='{station_code}' AND fechaobservacion BETWEEN '{start_date}' AND '{ending_date}'"
@@ -104,16 +139,12 @@ class DataController:
         # Convertir a pandas DataFrame
         temp_station_df = pd.DataFrame.from_records(results)
 
-        # print(temp_station_df)
-
         if temp_station_df.shape[0] == 0:
             return temp_station_df
 
         temp_station_df["fecha"] = pd.to_datetime(temp_station_df["fechaobservacion"]).dt.date
         temp_station_df["hora"] = pd.to_datetime(temp_station_df["fechaobservacion"]).dt.hour.astype('int32')
-        # validation_station_df["hora"] = validation_station_df["hora"].astype('int32')
         temp_station_df["observacion"] = temp_station_df["valorobservado"].astype('float64')
-        # temp_station_df["observacion_normalizada"] = self.prd_scaler.fit_transform(temp_station_df[["valorobservado"]])
         temp_station_df = temp_station_df.drop(['fechaobservacion', 'valorobservado'], axis=1)
         # print(temp_station_df)
         return temp_station_df
